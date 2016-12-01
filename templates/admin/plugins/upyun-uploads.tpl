@@ -16,11 +16,11 @@ export UPYUN_HOST="hostname domain"
 
 <p>
 	Upyun endpoint, path and host are optional. You can leave these blank to default to the standard asset url -
-	http://mybucket.b0.aicdn.com/uuid.jpg, and standard endpoint - v0.api.upyun.com<br/>
+	http://mybucket.b0.upaiyun.com/uuid.jpg, and standard endpoint - v0.api.upyun.com<br/>
 	Upyun host can be set to a custom asset host. For example, if set to cdn.mywebsite.com then the asset url is
 	http://cdn.mywebsite.com/uuid.jpg.<br/>
 	Upyun path can be set to a custom asset path. For example, if set to /assets, then the asset url is
-	http://mybucket.b0.aicdn.com/assets/uuid.jpg.<br/>
+	http://mybucket.b0.upaiyun.com/assets/uuid.jpg.<br/>
 	If both are asset host and path are set, then the url will be http://cdn.mywebsite.com/assets/uuid.jpg.
 </p>
 

@@ -30,7 +30,7 @@ export UPYUN_ENDPOINT="v0.api.upyun.com"
 export UPYUN_HOST="hostname domain"
 ```
 
-**NOTE:** Asset host is optional - If you do not specify an asset host, then the default asset host is `<bucket>.b0.aicdn.com`.
+**NOTE:** Asset host is optional - If you do not specify an asset host, then the default asset host is `<bucket>.b0.upaiyun.com`.
 **NOTE:** Asset path is optional - If you do not specify an asset path, then the default asset path is `/`.
 
 ### Database Backed Variables
@@ -38,7 +38,7 @@ export UPYUN_HOST="hostname domain"
 From the NodeBB Admin panel, you can configure the following settings to be stored in the Database:
 
 * `bucket` — The bucket to upload into
-* `host` - The base URL for the asset.  **Typically http://\<bucket\>.b0.aicdn.com**
+* `host` - The base URL for the asset.  **Typically http://\<bucket\>.b0.upaiyun.com**
 * `path` - The asset path (optional)
 * `endpoint` - The endpoint. **Typically v0.api.upyun.com**
 * `operaterName` — The Upyun Operater Name

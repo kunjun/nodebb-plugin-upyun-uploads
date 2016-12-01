@@ -294,7 +294,7 @@ function getUpyunDir() {
 
 
 function getUpyunHost() {
-	var host = 'http://'+settings.bucket+'.b0.aicdn.com';
+	var host = 'http://'+settings.bucket+'.b0.upaiyun.com';
 	if (settings.host) {
 		// must start with http://
 		if (!settings.host.match(/^http/)) {
