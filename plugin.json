@@ -1,12 +1,9 @@
 {
-    "id": "nodebb-plugin-s3-uploads-updated",
-    "name": "S3 Uploads Plugin",
-    "description": "A plugin for NodeBB to take file uploads and store them on S3 updated for 1.0",
-    "url": "https://github.com/LewisMcMahon/nodebb-plugin-s3-uploads",
+    "id": "nodebb-plugin-upyun-uploads",
+    "name": "Upyun Uploads Plugin",
+    "description": "A plugin for NodeBB to take file uploads and store them on Upyun",
+    "url": "https://github.com/revir/nodebb-plugin-upyun-uploads",
     "library": "./index.js",
-    "staticDirs": {
-        "s3": "public"
-    },
     "hooks": [
         { "hook": "static:app.load", "method": "load"},
         { "hook": "action:plugin.activate", "method": "activate"},

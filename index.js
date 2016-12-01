@@ -1,8 +1,10 @@
+"use strict";
+
 var Package = require("./package.json");
 
-var AWS = require("aws-sdk"),
+var Upyun = require('upyun'),
 	mime = require("mime"),
-	uuid = require("uuid").v4,
+	uuid = require("uuid/v4"),
 	fs = require("fs"),
 	request = require("request"),
 	path = require("path"),
@@ -13,22 +15,18 @@ var AWS = require("aws-sdk"),
 	meta = module.parent.require("./meta"),
 	db = module.parent.require("./database");
 
-var plugin = {}
+var plugin = {};
 
-"use strict";
+var upyunConn = null;
 
-var S3Conn = null;
 var settings = {
-	"accessKeyId": false,
-	"secretAccessKey": false,
-	"region": process.env.AWS_DEFAULT_REGION || "us-east-1",
-	"bucket": process.env.S3_UPLOADS_BUCKET || undefined,
-	"host": process.env.S3_UPLOADS_HOST || "s3.amazonaws.com",
-	"path": process.env.S3_UPLOADS_PATH || undefined
+	"operaterName": process.env.UPYUN_OPERATER_NAME,
+	"operaterPassword": process.env.UPYUN_OPERATER_PASSWORD,
+	"endpoint": process.env.UPYUN_ENDPOINT || "v0.api.upyun.com",
+	"bucket": process.env.UPYUN_UPLOADS_BUCKET || undefined,
+	"path": process.env.UPYUN_UPLOADS_PATH || undefined,
+	"host": process.env.UPYUN_HOST,
 };
-
-var accessKeyIdFromDb = false;
-var secretAccessKeyFromDb = false;
 
 function fetchSettings(callback) {
 	db.getObjectFields(Package.name, Object.keys(settings), function (err, newSettings) {
@@ -40,72 +38,70 @@ function fetchSettings(callback) {
 			return;
 		}
 
-		accessKeyIdFromDb = false;
-		secretAccessKeyFromDb = false;
-
-		if (newSettings.accessKeyId) {
-			settings.accessKeyId = newSettings.accessKeyId;
-			accessKeyIdFromDb = true;
+		if (newSettings.operaterName) {
+			settings.operaterName = newSettings.operaterName;
 		} else {
-			settings.accessKeyId = false;
+			settings.operaterName = process.env.UPYUN_OPERATER_NAME;
 		}
 
-		if (newSettings.secretAccessKey) {
-			settings.secretAccessKey = newSettings.secretAccessKey;
-			secretAccessKeyFromDb = false;
+		if (newSettings.operaterPassword) {
+			settings.operaterPassword = newSettings.operaterPassword;
 		} else {
-			settings.secretAccessKey = false;
+			settings.operaterPassword = process.env.UPYUN_OPERATER_PASSWORD;
 		}
 
 		if (!newSettings.bucket) {
-			settings.bucket = process.env.S3_UPLOADS_BUCKET || "";
+			settings.bucket = process.env.UPYUN_UPLOADS_BUCKET || "";
 		} else {
 			settings.bucket = newSettings.bucket;
 		}
 
-		if (!newSettings.host) {
-			settings.host = process.env.S3_UPLOADS_HOST || "";
-		} else {
-			settings.host = newSettings.host;
-		}
-
 		if (!newSettings.path) {
-			settings.path = process.env.S3_UPLOADS_PATH || "";
+			settings.path = process.env.UPYUN_UPLOADS_PATH || "";
 		} else {
 			settings.path = newSettings.path;
 		}
 
-		if (!newSettings.region) {
-			settings.region = process.env.AWS_DEFAULT_REGION || "";
+		if (!newSettings.host) {
+			settings.host = process.env.UPYUN_HOST;
 		} else {
-			settings.region = newSettings.region;
+			settings.host = newSettings.host;
 		}
 
-		if (settings.accessKeyId && settings.secretAccessKey) {
-			AWS.config.update({
-				accessKeyId: settings.accessKeyId,
-				secretAccessKey: settings.secretAccessKey
+		if (!newSettings.endpoint) {
+			settings.endpoint = process.env.UPYUN_ENDPOINT || "v0.api.upyun.com";
+		} else {
+			settings.endpoint = newSettings.endpoint;
+		}
+
+		if (settings.path) {
+			UpyunConn().makeDir(getUpyunDir(), function (err, result) {
+				if (err) {
+					winston.error(err.message);
+				}
+				if (typeof callback === "function") {
+					callback(err);
+				}
 			});
-		}
-
-		if (settings.region) {
-			AWS.config.update({
-				region: settings.region
-			});
-		}
-
-		if (typeof callback === "function") {
+		} else if (typeof callback === "function") {
 			callback();
 		}
 	});
 }
 
-function S3() {
-	if (!S3Conn) {
-		S3Conn = new AWS.S3();
+function UpyunConn() {
+	if (!upyunConn) {
+		upyunConn = new Upyun(settings.bucket,
+			settings.operaterName,
+			settings.operaterPassword,
+			settings.endpoint,
+			{
+			    apiVersion: 'v2',
+			    secret: ''
+			});
 	}
 
-	return S3Conn;
+	return upyunConn;
 }
 
 function makeError(err) {
@@ -124,7 +120,7 @@ plugin.activate = function () {
 };
 
 plugin.deactivate = function () {
-	S3Conn = null;
+	upyunConn = null;
 };
 
 plugin.load = function (params, callback) {
@@ -132,12 +128,12 @@ plugin.load = function (params, callback) {
 		if (err) {
 			return winston.error(err.message);
 		}
-		var adminRoute = "/admin/plugins/s3-uploads";
+		var adminRoute = "/admin/plugins/upyun-uploads";
 
 		params.router.get(adminRoute, params.middleware.applyCSRF, params.middleware.admin.buildHeader, renderAdmin);
 		params.router.get("/api" + adminRoute, params.middleware.applyCSRF, renderAdmin);
 
-		params.router.post("/api" + adminRoute + "/s3settings", s3settings);
+		params.router.post("/api" + adminRoute + "/upyunsettings", upyunSettings);
 		params.router.post("/api" + adminRoute + "/credentials", credentials);
 
 		callback();
@@ -149,30 +145,30 @@ function renderAdmin(req, res) {
 	var token = req.csrfToken();
 
 	var forumPath = nconf.get('url');
-	if(forumPath.split("").reverse()[0] != "/" ){
+	if(forumPath.split("").reverse()[0] !== "/" ){
 		forumPath = forumPath + "/";
 	}
 	var data = {
 		bucket: settings.bucket,
-		host: settings.host,
 		path: settings.path,
+		host: settings.host,
 		forumPath: forumPath,
-		region: settings.region,
-		accessKeyId: (accessKeyIdFromDb && settings.accessKeyId) || "",
-		secretAccessKey: (accessKeyIdFromDb && settings.secretAccessKey) || "",
+		endpoint: settings.endpoint,
+		operaterName: settings.operaterName,
+		operaterPassword: settings.operaterPassword,
 		csrf: token
 	};
 
-	res.render("admin/plugins/s3-uploads", data);
+	res.render("admin/plugins/upyun-uploads", data);
 }
 
-function s3settings(req, res, next) {
+function upyunSettings(req, res, next) {
 	var data = req.body;
 	var newSettings = {
 		bucket: data.bucket || "",
 		host: data.host || "",
 		path: data.path || "",
-		region: data.region || ""
+		endpoint: data.endpoint || ""
 	};
 
 	saveSettings(newSettings, res, next);
@@ -181,8 +177,8 @@ function s3settings(req, res, next) {
 function credentials(req, res, next) {
 	var data = req.body;
 	var newSettings = {
-		accessKeyId: data.accessKeyId || "",
-		secretAccessKey: data.secretAccessKey || ""
+		operaterName: data.operaterName || "",
+		operaterPassword: data.operaterPassword || ""
 	};
 
 	saveSettings(newSettings, res, next);
@@ -226,10 +222,10 @@ plugin.uploadImage = function (data, callback) {
 		}
 
 		fs.readFile(image.path, function (err, buffer) {
-			uploadToS3(image.name, err, buffer, callback);
+			uploadToUpyun(image.name, err, buffer, callback);
 		});
 	}
-	else {
+	else {   //River: what is this about? need test.
 		if (allowedMimeTypes.indexOf(mime.lookup(image.url)) === -1) {
 			return callback(new Error("invalid mime type"));
 		}
@@ -252,7 +248,7 @@ plugin.uploadImage = function (data, callback) {
 					buf = Buffer.concat([buf, d]);
 				});
 				stdout.on("end", function () {
-					uploadToS3(filename, null, buf, callback);
+					uploadToUpyun(filename, null, buf, callback);
 				});
 			});
 	}
@@ -276,57 +272,61 @@ plugin.uploadFile = function (data, callback) {
 	}
 
 	fs.readFile(file.path, function (err, buffer) {
-		uploadToS3(file.name, err, buffer, callback);
+		uploadToUpyun(file.name, err, buffer, callback);
 	});
 };
 
-function uploadToS3(filename, err, buffer, callback) {
+function getUpyunDir() {
+	var remotePath = '';
+	if (settings.path && 0 < settings.path.length) {
+		remotePath = settings.path;
+
+		if (!remotePath.match(/^\//)) {
+			// Add start slash
+			remotePath = "/" + remotePath;
+		}
+		// remove trailing slash
+		remotePath = remotePath.replace(/\/$/, '');
+
+	}
+	return remotePath;
+}
+
+
+function getUpyunHost() {
+	var host = 'http://'+settings.bucket+'.b0.aicdn.com';
+	if (settings.host) {
+		// must start with http://
+		if (!settings.host.match(/^http/)) {
+			host = 'http://' + settings.host;
+		} else {
+			host = settings.host;
+		}
+	}
+	return host;
+}
+
+function uploadToUpyun(filename, err, buffer, callback) {
 	if (err) {
 		return callback(makeError(err));
 	}
 
-	var s3Path;
-	if (settings.path && 0 < settings.path.length) {
-		s3Path = settings.path;
+	var remotePath = getUpyunDir() + '/';
 
-		if (!s3Path.match(/\/$/)) {
-			// Add trailing slash
-			s3Path = s3Path + "/";
-		}
-	}
-	else {
-		s3Path = "/";
-	}
+	remotePath += uuid() + path.extname(filename);
 
-	var s3KeyPath = s3Path.replace(/^\//, ""); // S3 Key Path should not start with slash.
-
-	var params = {
-		Bucket: settings.bucket,
-		ACL: "public-read",
-		Key: s3KeyPath + uuid() + path.extname(filename),
-		Body: buffer,
-		ContentLength: buffer.length,
-		ContentType: mime.lookup(filename)
-	};
-
-	S3().putObject(params, function (err) {
+	UpyunConn().putFile(remotePath, buffer, null, true, null, function(err, result) {
 		if (err) {
 			return callback(makeError(err));
 		}
-
-		// amazon has https enabled, we use it by default
-		var host = "https://" + params.Bucket +".s3.amazonaws.com";
-		if (settings.host && 0 < settings.host.length) {
-			host = settings.host;
-			// host must start with http or https
-			if (!host.startsWith("http")) {
-				host = "http://" + host;
-			}
+		if (result.statusCode !== 200) {
+			return callback(makeError(result.data));
 		}
-
+		var host = getUpyunHost();
+		var remoteHref = host + remotePath;
 		callback(null, {
 			name: filename,
-			url: host + "/" + params.Key
+			url: remoteHref
 		});
 	});
 }
@@ -335,9 +335,9 @@ var admin = plugin.admin = {};
 
 admin.menu = function (custom_header, callback) {
 	custom_header.plugins.push({
-		"route": "/plugins/s3-uploads",
+		"route": "/plugins/upyun-uploads",
 		"icon": "fa-envelope-o",
-		"name": "S3 Uploads"
+		"name": "Upyun Uploads"
 	});
 
 	callback(null, custom_header);
