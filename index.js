@@ -26,6 +26,7 @@ var settings = {
 	"bucket": process.env.UPYUN_UPLOADS_BUCKET || undefined,
 	"path": process.env.UPYUN_UPLOADS_PATH || undefined,
 	"host": process.env.UPYUN_HOST,
+	"imageVersion": process.env.UPYUN_IMAGE_VERSION || undefined,
 };
 
 function fetchSettings(callback) {
@@ -72,6 +73,12 @@ function fetchSettings(callback) {
 			settings.endpoint = process.env.UPYUN_ENDPOINT || "v0.api.upyun.com";
 		} else {
 			settings.endpoint = newSettings.endpoint;
+		}
+
+		if (!newSettings.imageVersion) {
+			settings.imageVersion = process.env.UPYUN_IMAGE_VERSION || undefined;
+		} else {
+			settings.imageVersion = newSettings.imageVersion;
 		}
 
 		if (settings.path) {
@@ -313,8 +320,8 @@ function uploadToUpyun(filename, err, buffer, callback) {
 	UpyunConn().putFile(remotePath, buffer)
 		.then((data) => {
 			// console.log(data);
-			const host = getUpyunHost();
-			const remoteHref = host + remotePath;
+			var host = getUpyunHost();
+			var remoteHref = host + remotePath + (settings.imageVersion || '');
 			callback(null, {
 				name: filename,
 				url: remoteHref

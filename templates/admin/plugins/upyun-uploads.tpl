@@ -12,6 +12,7 @@ export UPYUN_UPLOADS_BUCKET="mybucket"
 export UPYUN_UPLOADS_PATH="path"
 export UPYUN_ENDPOINT="v0.api.upyun.com"
 export UPYUN_HOST="hostname domain"
+export UPYUN_IMAGE_VERSION="!format"
 </code></pre>
 
 <p>
@@ -21,7 +22,9 @@ export UPYUN_HOST="hostname domain"
 	http://cdn.mywebsite.com/uuid.jpg.<br/>
 	Upyun path can be set to a custom asset path. For example, if set to /assets, then the asset url is
 	http://mybucket.b0.upaiyun.com/assets/uuid.jpg.<br/>
-	If both are asset host and path are set, then the url will be http://cdn.mywebsite.com/assets/uuid.jpg.
+	If both host and path are set, then the url will be http://cdn.mywebsite.com/assets/uuid.jpg.
+	If image version is set, like '!format'(don't forget the '!'), then the url will be http://cdn.mywebsite.com/assets/uuid.jpg!format.
+	See <a href="https://docs.upyun.com/cloud/image/">图片处理</a>.
 </p>
 
 <div class="alert alert-warning">
@@ -51,6 +54,10 @@ export UPYUN_HOST="hostname domain"
 		<option value="v2.api.upyun.com">联通（网通）线路 (v2.api.upyun.com)</option>
 		<option value="v3.api.upyun.com">移动（铁通）线路 (v3.api.upyun.com)</option>
 	</select>
+
+	<label for="imageVersion">Image Version</label><br/>
+	<input type="text" id="imageVersion" name="imageVersion" value="{imageVersion}" title="Image Version" class="form-control input-lg"
+	       placeholder="!format"><br/>
 	<br/>
 
 	<button class="btn btn-primary" type="submit">Save</button>
