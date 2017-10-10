@@ -159,6 +159,7 @@ function renderAdmin(req, res) {
 		endpoint: settings.endpoint,
 		operaterName: settings.operaterName,
 		operaterPassword: settings.operaterPassword,
+		imageVersion: settings.imageVersion,
 		csrf: token
 	};
 
@@ -171,7 +172,8 @@ function upyunSettings(req, res, next) {
 		bucket: data.bucket || "",
 		host: data.host || "",
 		path: data.path || "",
-		endpoint: data.endpoint || ""
+		endpoint: data.endpoint || "",
+		imageVersion: data.imageVersion || ''
 	};
 
 	saveSettings(newSettings, res, next);
