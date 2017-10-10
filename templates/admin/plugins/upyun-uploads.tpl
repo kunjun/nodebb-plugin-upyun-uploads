@@ -59,10 +59,6 @@ export UPYUN_HOST="hostname domain"
 <br><br>
 <form id="upyun-upload-credentials">
 	<label for="bucket">Credentials</label><br/>
-	<div class="alert alert-warning">
-		Configuring this plugin using the fields below is <strong>NOT recommended</strong>, as it can be a potential
-		security issue. We highly recommend that you investigate using <strong>Environment Variables</strong>
-	</div>
 	<input type="text" name="operaterName" value="{operaterName}" maxlength="20" title="Operater Name"
 	       class="form-control input-lg" placeholder="Operater Name"><br/>
 	<input type="password" name="operaterPassword" value="{operaterPassword}" title="Operater Password"

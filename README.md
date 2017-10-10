@@ -55,3 +55,5 @@ Highly recommend using **Environment Variables** instead.
 ## Credit
 
 This plugin is a folk from [LouiseMcMahon's nodebb-plugin-s3-uploads](https://github.com/LouiseMcMahon/nodebb-plugin-s3-uploads). Thanks for her great job.
+
+Thanks [a632079](https://github.com/a632079) for help.

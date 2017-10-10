@@ -11,7 +11,7 @@ var Upyun = require('upyun'),
 	winston = module.parent.require("winston"),
 	nconf = module.parent.require('nconf'),
 	gm = require("gm"),
-	im = gm.subClass({imageMagick: true}),
+	im = gm.subClass({ imageMagick: true }),
 	meta = module.parent.require("./meta"),
 	db = module.parent.require("./database");
 
@@ -91,14 +91,9 @@ function fetchSettings(callback) {
 
 function UpyunConn() {
 	if (!upyunConn) {
-		upyunConn = new Upyun(settings.bucket,
-			settings.operaterName,
-			settings.operaterPassword,
-			settings.endpoint,
-			{
-			    apiVersion: 'v2',
-			    secret: ''
-			});
+		console.log(settings);
+		var bucket = new Upyun.Bucket(settings.bucket, settings.operaterName, settings.operaterPassword);
+		upyunConn = new Upyun.Client(bucket, { domain: settings.endpoint });
 	}
 
 	return upyunConn;
@@ -128,16 +123,17 @@ plugin.load = function (params, callback) {
 		if (err) {
 			return winston.error(err.message);
 		}
-		var adminRoute = "/admin/plugins/upyun-uploads";
-
-		params.router.get(adminRoute, params.middleware.applyCSRF, params.middleware.admin.buildHeader, renderAdmin);
-		params.router.get("/api" + adminRoute, params.middleware.applyCSRF, renderAdmin);
-
-		params.router.post("/api" + adminRoute + "/upyunsettings", upyunSettings);
-		params.router.post("/api" + adminRoute + "/credentials", credentials);
-
-		callback();
 	});
+
+	var adminRoute = "/admin/plugins/upyun-uploads";
+
+	params.router.get(adminRoute, params.middleware.applyCSRF, params.middleware.admin.buildHeader, renderAdmin);
+	params.router.get("/api" + adminRoute, params.middleware.applyCSRF, renderAdmin);
+
+	params.router.post("/api" + adminRoute + "/upyunsettings", upyunSettings);
+	params.router.post("/api" + adminRoute + "/credentials", credentials);
+
+	callback();
 };
 
 function renderAdmin(req, res) {
@@ -145,7 +141,7 @@ function renderAdmin(req, res) {
 	var token = req.csrfToken();
 
 	var forumPath = nconf.get('url');
-	if(forumPath.split("").reverse()[0] !== "/" ){
+	if (forumPath.split("").reverse()[0] !== "/") {
 		forumPath = forumPath + "/";
 	}
 	var data = {
@@ -199,13 +195,13 @@ plugin.uploadImage = function (data, callback) {
 	var image = data.image;
 
 	if (!image) {
-		winston.error("invalid image" );
+		winston.error("invalid image");
 		return callback(new Error("invalid image"));
 	}
 
 	//check filesize vs. settings
 	if (image.size > parseInt(meta.config.maximumFileSize, 10) * 1024) {
-		winston.error("error:file-too-big, " + meta.config.maximumFileSize );
+		winston.error("error:file-too-big, " + meta.config.maximumFileSize);
 		return callback(new Error("[[error:file-too-big, " + meta.config.maximumFileSize + "]]"));
 	}
 
@@ -267,7 +263,7 @@ plugin.uploadFile = function (data, callback) {
 
 	//check filesize vs. settings
 	if (file.size > parseInt(meta.config.maximumFileSize, 10) * 1024) {
-		winston.error("error:file-too-big, " + meta.config.maximumFileSize );
+		winston.error("error:file-too-big, " + meta.config.maximumFileSize);
 		return callback(new Error("[[error:file-too-big, " + meta.config.maximumFileSize + "]]"));
 	}
 
@@ -294,7 +290,7 @@ function getUpyunDir() {
 
 
 function getUpyunHost() {
-	var host = 'http://'+settings.bucket+'.b0.upaiyun.com';
+	var host = 'http://' + settings.bucket + '.b0.upaiyun.com';
 	if (settings.host) {
 		// must start with http://
 		if (!settings.host.match(/^http/)) {
@@ -314,8 +310,22 @@ function uploadToUpyun(filename, err, buffer, callback) {
 	var remotePath = getUpyunDir() + '/';
 
 	remotePath += uuid() + path.extname(filename);
-
-	UpyunConn().putFile(remotePath, buffer, null, true, null, function(err, result) {
+	UpyunConn().putFile(remotePath, buffer)
+		.then((data) => {
+			// console.log(data);
+			const host = getUpyunHost();
+			const remoteHref = host + remotePath;
+			callback(null, {
+				name: filename,
+				url: remoteHref
+			});
+		})
+		.catch((err) => {
+			return callback(makeError(err));
+		});
+	//UpyunConn().putFile(remotePath, buffer).then();
+	/*
+	 null, true, null, function(err, result) {
 		if (err) {
 			return callback(makeError(err));
 		}
@@ -329,6 +339,7 @@ function uploadToUpyun(filename, err, buffer, callback) {
 			url: remoteHref
 		});
 	});
+	*/
 }
 
 var admin = plugin.admin = {};
